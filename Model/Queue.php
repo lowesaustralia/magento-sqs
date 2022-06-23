@@ -7,7 +7,7 @@
 
 namespace Belvg\Sqs\Model;
 
-use Belvg\Sqs\Helper\Data;
+use Belvg\Sqs\Helper\Data as BelvgSqsHelper;
 use Enqueue\Psr\PsrMessage;
 use Magento\Framework\MessageQueue\EnvelopeFactory;
 use Magento\Framework\MessageQueue\EnvelopeInterface;
@@ -51,25 +51,30 @@ class Queue implements QueueInterface
      */
     private $consumer;
 
+    private BelvgSqsHelper $belvgSqsHelper;
+
     /**
      * Initialize dependencies.
      *
-     * @param Config $amqpConfig
+     * @param Config $sqsConfig
      * @param EnvelopeFactory $envelopeFactory
-     * @param string $queueName
+     * @param $queueName
      * @param LoggerInterface $logger
+     * @param BelvgSqsHelper $belvgSqsHelper
      */
     public function __construct(
         Config $sqsConfig,
         EnvelopeFactory $envelopeFactory,
         $queueName,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        BelvgSqsHelper $belvgSqsHelper
     )
     {
         $this->sqsConfig = $sqsConfig;
         $this->queueName = $queueName;
         $this->envelopeFactory = $envelopeFactory;
         $this->logger = $logger;
+        $this->belvgSqsHelper = $belvgSqsHelper;
     }
 
     /**
@@ -113,7 +118,7 @@ class Queue implements QueueInterface
      */
     protected function getQueueName()
     {
-        return $this->sqsConfig->getValue(Config::PREFIX) . '_' . Data::prepareQueueName($this->queueName);
+        return $this->sqsConfig->getValue($this->belvgSqsHelper->getPrefix()) . '_' . BelvgSqsHelper::prepareQueueName($this->queueName);
     }
 
     protected function createEnvelop(PsrMessage $message)

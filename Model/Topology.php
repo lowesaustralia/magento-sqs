@@ -7,7 +7,7 @@
 
 namespace Belvg\Sqs\Model;
 
-use Belvg\Sqs\Helper\Data;
+use Belvg\Sqs\Helper\Data as BelvgSqsHelper;
 use Magento\Framework\Communication\ConfigInterface as CommunicationConfig;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\MessageQueue\ConfigInterface as QueueConfig;
@@ -48,24 +48,30 @@ class Topology
      */
     private $communicationConfig;
 
+    private BelvgSqsHelper $belvgSqsHelper;
+
     /**
      * Topology constructor.
+     *
      * @param Config $sqsConfig
      * @param QueueConfig $queueConfig
      * @param CommunicationConfig $communicationConfig
      * @param \Psr\Log\LoggerInterface $logger
+     * @param BelvgSqsHelper $belvgSqsHelper
      */
     public function __construct(
         Config $sqsConfig,
         QueueConfig $queueConfig,
         CommunicationConfig $communicationConfig,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        BelvgSqsHelper $belvgSqsHelper
     )
     {
         $this->sqsConfig = $sqsConfig;
         $this->queueConfig = $queueConfig;
         $this->communicationConfig = $communicationConfig;
         $this->logger = $logger;
+        $this->belvgSqsHelper = $belvgSqsHelper;
     }
 
     /**
@@ -276,6 +282,6 @@ class Topology
      */
     protected function getQueueName($queueName)
     {
-        return $this->sqsConfig->getValue(Config::PREFIX) . '_' . Data::prepareQueueName($queueName);
+        return $this->sqsConfig->getValue($this->belvgSqsHelper->getPrefix()) . '_' . BelvgSqsHelper::prepareQueueName($queueName);
     }
 }

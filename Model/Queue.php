@@ -118,7 +118,7 @@ class Queue implements QueueInterface
      */
     protected function getQueueName()
     {
-        return $this->sqsConfig->getValue($this->belvgSqsHelper->getPrefix()) . '_' . BelvgSqsHelper::prepareQueueName($this->queueName);
+        return $this->belvgSqsHelper->getPrefix() . '_' . BelvgSqsHelper::prepareQueueName($this->queueName);
     }
 
     protected function createEnvelop(PsrMessage $message)

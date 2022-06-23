@@ -282,6 +282,6 @@ class Topology
      */
     protected function getQueueName($queueName)
     {
-        return $this->sqsConfig->getValue($this->belvgSqsHelper->getPrefix()) . '_' . BelvgSqsHelper::prepareQueueName($queueName);
+        return $this->belvgSqsHelper->getPrefix() . '_' . BelvgSqsHelper::prepareQueueName($queueName);
     }
 }

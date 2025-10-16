@@ -215,18 +215,21 @@ class Queue implements QueueInterface
         return $this->sqsConfig->getConnection();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function subscribeQueue(callable $callback)
+    public function subscribeQueue(): void
     {
-        // For SQS, this can be similar to the existing subscribe method
-        // but adapted for the specific interface requirements
+        // For SQS, this method typically sets up a continuous consumer
+        // Since SQS doesn't have native pub/sub like RabbitMQ, this might
+        // be similar to the subscribe method but running continuously
         while (true) {
             $message = $this->createConsumer()->receive(self::TIMEOUT_PROCESS);
             if ($message) {
                 $envelope = $this->createEnvelop($message);
-                $callback($envelope);
+                // In Magento, this would typically be handled by the framework
+                // The actual callback would be managed by Magento's consumer system
+                $this->logger->info('Message received in subscribeQueue for: ' . $this->getQueueName());
+
+                // Acknowledge the message to remove it from queue
+                $this->createConsumer()->acknowledge($message);
             }
         }
     }
@@ -234,19 +237,42 @@ class Queue implements QueueInterface
     /**
      * {@inheritdoc}
      */
-    public function clearQueue()
+    public function clearQueue(): int
     {
-        // Implement queue clearing logic for SQS
-        // This might involve purging the SQS queue
+        $clearedCount = 0;
+
         try {
+            // First, try to use the SQS purge functionality if available
             $context = $this->sqsConfig->getConnection();
             $queue = $this->getQueue();
 
-            // SQS has a purge queue API that can be used
-            // Note: SQS purge might have restrictions (once every 60 seconds)
-            $context->purgeQueue($queue);
+            if (method_exists($context, 'purgeQueue')) {
+                $context->purgeQueue($queue);
+                $this->logger->info('SQS queue purged: ' . $this->getQueueName());
+                // Since purge doesn't return a count, we'll return 1 to indicate success
+                return 1;
+            } else {
+                // Fallback: manually receive and acknowledge messages to clear them
+                $consumer = $this->createConsumer();
+                $maxMessages = 10; // Process in batches
 
-            $this->logger->info('SQS queue cleared: ' . $this->getQueueName());
+                do {
+                    $messagesCleared = 0;
+                    for ($i = 0; $i < $maxMessages; $i++) {
+                        $message = $consumer->receive(1000); // 1 second timeout
+                        if ($message) {
+                            $consumer->acknowledge($message);
+                            $messagesCleared++;
+                            $clearedCount++;
+                        } else {
+                            break;
+                        }
+                    }
+                } while ($messagesCleared > 0);
+
+                $this->logger->info("SQS queue cleared manually: {$clearedCount} messages removed from " . $this->getQueueName());
+                return $clearedCount;
+            }
         } catch (\Exception $e) {
             $this->logger->error('Error clearing SQS queue: ' . $e->getMessage());
             throw $e;

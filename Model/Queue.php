@@ -215,4 +215,42 @@ class Queue implements QueueInterface
         return $this->sqsConfig->getConnection();
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function subscribeQueue(callable $callback)
+    {
+        // For SQS, this can be similar to the existing subscribe method
+        // but adapted for the specific interface requirements
+        while (true) {
+            $message = $this->createConsumer()->receive(self::TIMEOUT_PROCESS);
+            if ($message) {
+                $envelope = $this->createEnvelop($message);
+                $callback($envelope);
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function clearQueue()
+    {
+        // Implement queue clearing logic for SQS
+        // This might involve purging the SQS queue
+        try {
+            $context = $this->sqsConfig->getConnection();
+            $queue = $this->getQueue();
+
+            // SQS has a purge queue API that can be used
+            // Note: SQS purge might have restrictions (once every 60 seconds)
+            $context->purgeQueue($queue);
+
+            $this->logger->info('SQS queue cleared: ' . $this->getQueueName());
+        } catch (\Exception $e) {
+            $this->logger->error('Error clearing SQS queue: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
 }

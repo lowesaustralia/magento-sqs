@@ -215,4 +215,41 @@ class Queue implements QueueInterface
         return $this->sqsConfig->getConnection();
     }
 
+    /**
+     * Only subscribe the queue.
+     * For SQS this is effectively a no-op, but ensure consumer is created.
+     *
+     * @return void
+     */
+    public function subscribeQueue(): void
+    {
+        // Create the consumer so the underlying connection is initialized.
+        $this->createConsumer();
+    }
+
+    /**
+     * Clear queue by receiving available messages and acknowledging them.
+     * This will poll until no message is received within the short timeout.
+     *
+     * @return int Number of messages cleared from the queue
+     */
+    public function clearQueue(): int
+    {
+        $cleared = 0;
+
+        // keep receiving with a small timeout until queue is empty
+        while (true) {
+            /** @var \Enqueue\Sqs\SqsMessage $message */
+            $message = $this->createConsumer()->receive(1000); // 1s
+            if (null === $message) {
+                break;
+            }
+            $envelope = $this->createEnvelop($message);
+            // acknowledge will create a message and acknowledge it on the consumer
+            $this->acknowledge($envelope);
+            $cleared++;
+        }
+
+        return $cleared;
+    }
 }

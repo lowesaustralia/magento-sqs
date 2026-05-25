@@ -163,7 +163,7 @@ class Queue implements QueueInterface
     /**
      * {@inheritdoc}
      */
-    public function subscribe($callback, int $qtyOfMessages = null)
+    public function subscribe($callback, ?int $qtyOfMessages = null)
     {
 
         $index = 0;
